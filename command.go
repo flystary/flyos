@@ -15,7 +15,7 @@ import (
 type Command interface {
 	Name() string
 	Path() string // 外部命令路径，内置命令返回 ""
-	Execute(args []string, env map[string]string) error
+	Execute(args []string, env map[string]interface{}) error
 	IsBuiltin() bool
 	Desc() string
 	Usage() string
@@ -43,7 +43,7 @@ func (f *FileCommand) Args() []string        { return nil }
 func (f *FileCommand) Returns() []string     { return nil }
 func (f *FileCommand) Flags() []string       { return nil }
 func (f *FileCommand) Subcommands() []string { return nil }
-func (f *FileCommand) Execute(args []string, env map[string]string) error {
+func (f *FileCommand) Execute(args []string, env map[string]interface{}) error {
 	cmd := exec.Command(f.path, args[1:]...)
 	cmd.Env = mergeEnv(env)
 	cmd.Stdin = os.Stdin
@@ -65,7 +65,7 @@ func (l *ListCommand) Args() []string        { return []string{""} }
 func (l *ListCommand) Returns() []string     { return []string{"展示所有命令！"} }
 func (l *ListCommand) Flags() []string       { return nil }
 func (l *ListCommand) Subcommands() []string { return nil }
-func (l *ListCommand) Execute(args []string, env map[string]string) error {
+func (l *ListCommand) Execute(args []string, env map[string]interface{}) error {
 
 	return nil
 }
@@ -83,7 +83,7 @@ func (e *ExitCommand) Args() []string        { return []string{"[]"} }
 func (e *ExitCommand) Returns() []string     { return []string{"退出环境！"} }
 func (e *ExitCommand) Flags() []string       { return nil }
 func (e *ExitCommand) Subcommands() []string { return nil }
-func (e *ExitCommand) Execute(args []string, env map[string]string) error {
+func (e *ExitCommand) Execute(args []string, env map[string]interface{}) error {
 	fmt.Println("👋 Bye!")
 	return nil
 }
@@ -101,7 +101,7 @@ func (e *EnvCommand) Args() []string        { return []string{"VAR 可选，需�
 func (e *EnvCommand) Returns() []string     { return []string{"打印环境变量内容"} }
 func (e *EnvCommand) Flags() []string       { return nil }
 func (e *EnvCommand) Subcommands() []string { return nil }
-func (e *EnvCommand) Execute(args []string, env map[string]string) error {
+func (e *EnvCommand) Execute(args []string, env map[string]interface{}) error {
 	allEnv := mergeEnv(env)
 	if len(args) <= 1 {
 		for _, v := range allEnv {
@@ -150,7 +150,7 @@ func (h *HelpCommand) Returns() []string     { return []string{"打印帮助信�
 func (h *HelpCommand) Flags() []string       { return nil }
 func (h *HelpCommand) Subcommands() []string { return nil }
 
-func (h *HelpCommand) Execute(args []string, env map[string]string) error {
+func (h *HelpCommand) Execute(args []string, env map[string]interface{}) error {
 	// 只输入 help 时
 	builtins := []Command{}
 	if len(args) == 1 {

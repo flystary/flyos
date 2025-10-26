@@ -14,10 +14,20 @@ import (
 type Shell struct {
 	mu       sync.RWMutex
 	commands map[string]Command
-	env      map[string]string
+	env      map[string]interface{}
 }
 
-func NewShell(env map[string]string) *Shell {
+func NewShell(customEnv map[string]interface{}) *Shell {
+	env := make(map[string]interface{})
+	for _, e := range os.Environ() {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) == 2 {
+			env[parts[0]] = parts[1]
+		}
+	}
+	for k, v := range customEnv {
+		env[k] = v
+	}
 	return &Shell{
 		commands: make(map[string]Command),
 		env:      env,

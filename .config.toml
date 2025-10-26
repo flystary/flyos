@@ -1,6 +1,7 @@
 # 命令所在目录
 commands_dirs = [
     "./tools",
+    "/usr/local/svxnetworks"
 ]
 
 # 排除某些文件
@@ -8,5 +9,5 @@ excludes = []
 
 # 环境变量
 [env]
-PATH = "/usr/local/bin"
+PATH = ["$PATH", "/usr/local/bin", "/usr/bin"]
 DEBUG = "true"
