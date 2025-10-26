@@ -57,7 +57,7 @@ func (s *Shell) List() {
 		}
 		sort.Strings(bcats)
 		for _, cat := range bcats {
-			fmt.Println("\n📂 分类:")
+			fmt.Println("📂 分类:")
 			fmt.Printf("\n[%s]\n", cat)
 			cmds := builtinCategories[cat]
 			sort.Slice(cmds, func(i, j int) bool { return cmds[i].Name() < cmds[j].Name() })
@@ -66,7 +66,7 @@ func (s *Shell) List() {
 				if desc == "" {
 					desc = "<暂无描述>"
 				}
-				fmt.Printf("  %-10s - %-8s\n", c.Name(), desc)
+				fmt.Printf("  %-10s - %s\n", c.Name(), desc)
 			}
 		}
 	}
@@ -81,7 +81,7 @@ func (s *Shell) List() {
 			ecats = append(ecats, c)
 		}
 		sort.Strings(ecats)
-		fmt.Println("\n📂 分类:")
+		fmt.Println("📂 分类:")
 		for _, cat := range ecats {
 			fmt.Printf("\n[%s]\n", cat)
 			cmds := externalCategories[cat]

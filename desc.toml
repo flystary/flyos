@@ -1,6 +1,6 @@
 
 # hello.sh 命令
-[system.hello.sh]
+[sys.hello.sh]
 desc = "hello.sh can be used to remotely connect CPE and display the process"
 usage = "hello.sh [SUBCOMMAND]"
 subcommands = ["help      Prints this message or the help of the given subcommand(s)"]

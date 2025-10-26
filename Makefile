@@ -6,5 +6,5 @@ LDFLAGS := -ldflags "-X config.Version=${VERSION}"
 
 .PHONY: build
 build:
-	# GOARCH=amd64 GOOS=linux go build -ldflags="-w -s"  -o  flyos main.go
-	GOARCH=amd64 GOOS=darwin go build -ldflags="-w -s"  -o  flyos main.go
+	# GOARCH=amd64 GOOS=linux go build -ldflags="-w -s"  -o  flyos *.go
+	GOARCH=amd64 GOOS=darwin go build -ldflags="-w -s"  -o  flyos *.go
