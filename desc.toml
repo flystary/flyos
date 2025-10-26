@@ -1,0 +1,19 @@
+
+# hello.sh 命令
+[system.hello.sh]
+desc = "hello.sh can be used to remotely connect CPE and display the process"
+usage = "hello.sh [SUBCOMMAND]"
+subcommands = ["help      Prints this message or the help of the given subcommand(s)"]
+args = ["<CPE_NAME>     # Name of the CPE to connect"]
+flags = ["-h, --help    # Prints help information"]
+returns = ["Live console output of connection process"]
+
+
+# hello.sh 命令
+[system.ignore.sh]
+desc = "ignore.sh can be used to remotely connect CPE and display the process"
+usage = "ignore.sh [SUBCOMMAND]"
+subcommands = ["help      Prints this message or the help of the given subcommand(s)"]
+args = ["<CPE_NAME>     # Name of the CPE to connect"]
+flags = ["-h, --help    # Prints help information"]
+returns = ["Live console output of connection process"]
