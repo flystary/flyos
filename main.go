@@ -22,88 +22,47 @@ func init() {
 	baseEnv = os.Environ()
 }
 
-// mergeEnv 合并系统环境变量与自定义配置环境变量。
-// 支持 PATH 数组合并、$PATH 占位符、DEBUG 打印。
-func mergeEnv(custom map[string]interface{}) []string {
-	envMap := map[string]string{}
-
-	// 1️⃣ 导入系统环境
-	for _, kv := range baseEnv {
-		parts := strings.SplitN(kv, "=", 2)
-		if len(parts) == 2 {
-			envMap[parts[0]] = parts[1]
-		}
-	}
-
-	sysPath := envMap["PATH"]
-	sep := string(os.PathListSeparator)
-
-	// 2️⃣ 处理自定义环境变量
+func mergeEnv(custom map[string]string) []string {
+	env := make([]string, len(baseEnv))
+	copy(env, baseEnv)
 	for k, v := range custom {
-		switch val := v.(type) {
-		case string:
-			// 支持 $PATH 展开
-			if k == "PATH" {
-				val = strings.ReplaceAll(val, "$PATH", sysPath)
-			}
-			envMap[k] = val
-
-		case []interface{}:
-			// 支持 PATH 数组合并
-			if k == "PATH" {
-				paths := []string{}
-				for _, p := range val {
-					if s, ok := p.(string); ok {
-						if s == "$PATH" {
-							paths = append(paths, strings.Split(sysPath, sep)...)
-						} else if strings.Contains(s, "$PATH") {
-							paths = append(paths, strings.Split(strings.ReplaceAll(s, "$PATH", sysPath), sep)...)
-						} else {
-							paths = append(paths, s)
-						}
-					}
-				}
-				envMap[k] = strings.Join(paths, sep)
-			} else {
-				// 非 PATH 数组转为逗号字符串
-				strVals := []string{}
-				for _, p := range val {
-					strVals = append(strVals, fmt.Sprintf("%v", p))
-				}
-				envMap[k] = strings.Join(strVals, ",")
-			}
-
-		default:
-			envMap[k] = fmt.Sprintf("%v", val)
-		}
+		env = append(env, k+"="+v)
 	}
-
-	// 3️⃣ DEBUG 模式打印
-	debug := strings.EqualFold(envMap["DEBUG"], "true")
-	if debug {
-		fmt.Println("🪴 [flyos] Merged environment variables:")
-		for k, v := range envMap {
-			if k == "PATH" {
-				fmt.Printf("  %-10s = %s\n", k, v)
-			} else {
-				fmt.Printf("  %-10s = %q\n", k, v)
-			}
-		}
-	}
-
-	// 4️⃣ 转换为 os.Environ 格式
-	result := []string{}
-	for k, v := range envMap {
-		result = append(result, fmt.Sprintf("%s=%s", k, v))
-	}
-	return result
+	return env
 }
 
 // 配置结构
 type Config struct {
-	CommandsDirs []string               `toml:"commands_dirs"`
-	Excludes     []string               `toml:"excludes"`
-	Env          map[string]interface{} `toml:"env"`
+    CommandsDirs []string      			`toml:"commands_dirs"`
+    Excludes     []string      			`toml:"excludes"`
+    Env          map[string]interface{} `toml:"env"` // 允许值为 string 或 []string
+}
+
+func (c *Config) NormalizeEnv() map[string]string {
+    result := make(map[string]string)
+    
+    for key, rawVal := range c.Env {
+        switch val := rawVal.(type) {
+        case string:
+            result[key] = val
+        case []interface{}:
+            // TOML 解析数组为 []interface{}
+            parts := make([]string, 0, len(val))
+            for _, v := range val {
+                if s, ok := v.(string); ok {
+                    parts = append(parts, s)
+                }
+            }
+            result[key] = strings.Join(parts, ":")
+        case []string:
+            // 某些解析器可能直接返回 []string
+            result[key] = strings.Join(val, ":")
+        default:
+            // 兜底：转为字符串（如数字、bool）
+            result[key] = fmt.Sprintf("%v", val)
+        }
+    }
+    return result
 }
 
 // Config
@@ -116,52 +75,7 @@ func parseConfig() (*Config, error) {
 	if err := toml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-
-	envStr := make(map[string]interface{})
-	sysPath := os.Getenv("PATH")
-	sep := string(os.PathListSeparator)
-
-	for k, v := range cfg.Env {
-		switch val := v.(type) {
-		case string:
-			// 单字符串 PATH 支持 $PATH 展开
-			if k == "PATH" {
-				envStr[k] = strings.ReplaceAll(val, "$PATH", sysPath)
-			} else {
-				envStr[k] = val
-			}
-
-		case []interface{}:
-			paths := []string{}
-			for _, p := range val {
-				if s, ok := p.(string); ok {
-					// 展开 $PATH
-					if s == "$PATH" {
-						paths = append(paths, strings.Split(sysPath, sep)...)
-					} else if strings.Contains(s, "$PATH") {
-						paths = append(paths, strings.Split(strings.ReplaceAll(s, "$PATH", sysPath), sep)...)
-					} else {
-						paths = append(paths, s)
-					}
-				}
-			}
-			envStr[k] = strings.Join(paths, sep)
-
-		default:
-			envStr[k] = fmt.Sprintf("%v", val)
-		}
-	}
-
-	fmt.Println("🌍 已加载环境变量:")
-	for k, v := range envStr {
-		fmt.Printf("  %s=%s\n", k, v)
-	}
-
-	return &Config{
-		CommandsDirs: cfg.CommandsDirs,
-		Excludes:     cfg.Excludes,
-		Env:          envStr,
-	}, nil
+	return &cfg, nil
 }
 
 // REPL
@@ -213,7 +127,8 @@ func main() {
 		return
 	}
 
-	shell := NewShell(cfg.Env)
+	envMap := cfg.NormalizeEnv()
+	shell := NewShell(envMap)
 	shell.env["USER"] = "fly"
 	shell.env["VERSION"] = "1.0.0"
 	// 内置命令注册
@@ -276,6 +191,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("🚀 flyos REPL 启动！输入 'help' 查看命令 'exit' 退出环境 ")
+	fmt.Println("🚀 FlyOS REPL 已启动！💡 输入 help 查看命令，输入 exit 安全退出 " )
 	repl.Loop()
 }

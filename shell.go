@@ -14,20 +14,10 @@ import (
 type Shell struct {
 	mu       sync.RWMutex
 	commands map[string]Command
-	env      map[string]interface{}
+	env      map[string]string
 }
 
-func NewShell(customEnv map[string]interface{}) *Shell {
-	env := make(map[string]interface{})
-	for _, e := range os.Environ() {
-		parts := strings.SplitN(e, "=", 2)
-		if len(parts) == 2 {
-			env[parts[0]] = parts[1]
-		}
-	}
-	for k, v := range customEnv {
-		env[k] = v
-	}
+func NewShell(env map[string]string) *Shell {
 	return &Shell{
 		commands: make(map[string]Command),
 		env:      env,
@@ -57,7 +47,7 @@ func (s *Shell) List() {
 	}
 
 	// 内置命令输出
-	fmt.Println("📦 内置命令:")
+	fmt.Println("🛠️ 内置命令:")
 	if len(builtinCategories) == 0 {
 		fmt.Println("  <无>")
 	} else {
@@ -67,7 +57,7 @@ func (s *Shell) List() {
 		}
 		sort.Strings(bcats)
 		for _, cat := range bcats {
-			fmt.Println("📂 分类:")
+			fmt.Println("🗂 分类:")
 			fmt.Printf("\n[%s]\n", cat)
 			cmds := builtinCategories[cat]
 			sort.Slice(cmds, func(i, j int) bool { return cmds[i].Name() < cmds[j].Name() })
@@ -91,7 +81,7 @@ func (s *Shell) List() {
 			ecats = append(ecats, c)
 		}
 		sort.Strings(ecats)
-		fmt.Println("📂 分类:")
+		fmt.Println("🗂 分类:")
 		for _, cat := range ecats {
 			fmt.Printf("\n[%s]\n", cat)
 			cmds := externalCategories[cat]
@@ -116,7 +106,7 @@ func (s *Shell) RunCommand(args []string) {
 	cmd, ok := s.commands[args[0]]
 	s.mu.RUnlock()
 	if !ok {
-		fmt.Printf("❌ 未找到命令: %s\n", args[0])
+		fmt.Printf("⚠️ 未找到命令: %s\n", args[0])
 		return
 	}
 	if err := cmd.Execute(args, s.env); err != nil {
@@ -149,6 +139,9 @@ func (s *Shell) LoadCommands(cfg *Config, descMgr *DescManager) {
 	newMap := make(map[string]Command)
 	for _, dir := range cfg.CommandsDirs {
 		filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
 			if d.IsDir() || excluded[d.Name()] {
 				return nil
 			}
@@ -174,7 +167,7 @@ func (s *Shell) LoadCommands(cfg *Config, descMgr *DescManager) {
 		s.commands[k] = v
 	}
 	s.mu.Unlock()
-	fmt.Printf("✅ 已加载 %d 个外部命令\n", len(newMap))
+	fmt.Printf("🔄 已加载 %d 个📦外部命令\n", len(newMap))
 }
 
 // 文件扫描

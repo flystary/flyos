@@ -15,7 +15,7 @@ import (
 type Command interface {
 	Name() string
 	Path() string // 外部命令路径，内置命令返回 ""
-	Execute(args []string, env map[string]interface{}) error
+	Execute(args []string, env map[string]string) error
 	IsBuiltin() bool
 	Desc() string
 	Usage() string
@@ -43,7 +43,7 @@ func (f *FileCommand) Args() []string        { return nil }
 func (f *FileCommand) Returns() []string     { return nil }
 func (f *FileCommand) Flags() []string       { return nil }
 func (f *FileCommand) Subcommands() []string { return nil }
-func (f *FileCommand) Execute(args []string, env map[string]interface{}) error {
+func (f *FileCommand) Execute(args []string, env map[string]string) error {
 	cmd := exec.Command(f.path, args[1:]...)
 	cmd.Env = mergeEnv(env)
 	cmd.Stdin = os.Stdin
@@ -65,7 +65,7 @@ func (l *ListCommand) Args() []string        { return []string{""} }
 func (l *ListCommand) Returns() []string     { return []string{"展示所有命令！"} }
 func (l *ListCommand) Flags() []string       { return nil }
 func (l *ListCommand) Subcommands() []string { return nil }
-func (l *ListCommand) Execute(args []string, env map[string]interface{}) error {
+func (l *ListCommand) Execute(args []string, env map[string]string) error {
 
 	return nil
 }
@@ -83,7 +83,7 @@ func (e *ExitCommand) Args() []string        { return []string{"[]"} }
 func (e *ExitCommand) Returns() []string     { return []string{"退出环境！"} }
 func (e *ExitCommand) Flags() []string       { return nil }
 func (e *ExitCommand) Subcommands() []string { return nil }
-func (e *ExitCommand) Execute(args []string, env map[string]interface{}) error {
+func (e *ExitCommand) Execute(args []string, env map[string]string) error {
 	fmt.Println("👋 Bye!")
 	return nil
 }
@@ -101,7 +101,7 @@ func (e *EnvCommand) Args() []string        { return []string{"VAR 可选，需�
 func (e *EnvCommand) Returns() []string     { return []string{"打印环境变量内容"} }
 func (e *EnvCommand) Flags() []string       { return nil }
 func (e *EnvCommand) Subcommands() []string { return nil }
-func (e *EnvCommand) Execute(args []string, env map[string]interface{}) error {
+func (e *EnvCommand) Execute(args []string, env map[string]string) error {
 	allEnv := mergeEnv(env)
 	if len(args) <= 1 {
 		for _, v := range allEnv {
@@ -140,7 +140,7 @@ func (h *HelpCommand) Category() string { return "sys" }
 func (h *HelpCommand) Path() string     { return "" }
 func (h *HelpCommand) IsBuiltin() bool  { return true }
 func (h *HelpCommand) Desc() string {
-	return "显示命令或分类的帮助信息（支持模糊搜索）"
+	return "🔍 显示命令或分类的帮助信息（支持模糊搜索）"
 }
 func (h *HelpCommand) Usage() string { return "help [COMMAND|CATEGORY|KEYWORD]" }
 func (h *HelpCommand) Args() []string {
@@ -150,12 +150,12 @@ func (h *HelpCommand) Returns() []string     { return []string{"打印帮助信�
 func (h *HelpCommand) Flags() []string       { return nil }
 func (h *HelpCommand) Subcommands() []string { return nil }
 
-func (h *HelpCommand) Execute(args []string, env map[string]interface{}) error {
+func (h *HelpCommand) Execute(args []string, env map[string]string) error {
 	// 只输入 help 时
 	builtins := []Command{}
 	if len(args) == 1 {
 		// 1️⃣ 打印所有内置命令
-		fmt.Println("📦 内置命令:")
+		fmt.Println("🛠️  内置命令:")
 		for _, cmd := range h.shell.commands {
 			if cmd.IsBuiltin() {
 				builtins = append(builtins, cmd)
@@ -170,12 +170,12 @@ func (h *HelpCommand) Execute(args []string, env map[string]interface{}) error {
 		// 2️⃣ 打印外部命令分类
 		cats := h.descMgr.getAllCategories()
 		if len(cats) > 0 {
-			fmt.Println("📂 外部命令分类:")
+			fmt.Println("🗂  外部命令分类:")
 			sort.Strings(cats)
 			for _, c := range cats {
 				fmt.Println("  " + c)
 			}
-			fmt.Println("\n使用 `help [分类名]` 查看分类内命令")
+			fmt.Println("\n💡 使用 `help [分类名]` 查看分类内命令")
 		} else {
 			fmt.Println("⚠️ 暂无外部命令")
 		}
@@ -201,7 +201,7 @@ func (h *HelpCommand) Execute(args []string, env map[string]interface{}) error {
 	// 匹配外部命令分类
 	for _, cat := range h.descMgr.getAllCategories() {
 		if strings.EqualFold(cat, target) {
-			fmt.Printf("📦 分类: %s\n\n", cat)
+			fmt.Printf("🗂  分类: %s\n\n", cat)
 			if v, ok := h.descMgr.categories.Load(cat); ok {
 				cmds := v.([]string)
 				for _, name := range cmds {
@@ -233,7 +233,7 @@ func (h *HelpCommand) Execute(args []string, env map[string]interface{}) error {
 	})
 
 	if len(matches) == 0 {
-		fmt.Printf("❌ 未找到与 '%s' 相关的命令\n", target)
+		fmt.Printf("⚠️ 未找到与 '%s' 相关的命令\n", target)
 		return nil
 	}
 
@@ -245,7 +245,7 @@ func (h *HelpCommand) Execute(args []string, env map[string]interface{}) error {
 			fmt.Printf("  %-20s - %s\n", m, desc.Desc)
 		}
 	}
-	fmt.Println("\n使用 `help [命令名]` 查看详细帮助")
+	fmt.Println("\n💡 使用 `help [命令名]` 查看详细帮助")
 	return nil
 }
 
@@ -317,7 +317,7 @@ func (d *DescManager) Load(path string) error {
 
 	walk(raw, []string{})
 
-	fmt.Printf("✅ desc.toml 已加载，共 %d 条命令，%d 个分类\n", d.countCommands(), len(d.getAllCategories()))
+	fmt.Printf("📄 desc.toml 已加载，共 %d 条📄命令，%d 个🗂分类\n", d.countCommands(), len(d.getAllCategories()))
 	return nil
 }
 
@@ -354,30 +354,31 @@ func (d *DescManager) PrintHelp(name string, shell *Shell) {
 
 	// 先检查内置
 	if cmd, ok := shell.commands[name]; ok && cmd.IsBuiltin() {
-		fmt.Printf("Command: %s\nCategory: %s\n\n", cmd.Name(), cmd.Category())
-		fmt.Printf("Usage:\n  %s\n", cmd.Usage())
+		fmt.Printf("📄  Command:  %-5s\n", cmd.Name())
+		fmt.Printf("🗂   Category: %-5s\n", cmd.Category())
+		fmt.Printf("📌  Usage:\n      %s\n", cmd.Usage())
 		if len(cmd.Flags()) > 0 {
-			fmt.Println("Flags:")
+			fmt.Println("🏷️  Flags:")
 			for _, v := range cmd.Flags() {
-				fmt.Println("   " + v)
+				fmt.Println("      " + v)
 			}
 		}
 		if len(cmd.Subcommands()) > 0 {
-			fmt.Println("Subcommands:")
+			fmt.Println("🧩  Subcommands:")
 			for _, v := range cmd.Subcommands() {
-				fmt.Println("   " + v)
+				fmt.Println("      " + v)
 			}
 		}
 		if len(cmd.Args()) > 0 {
-			fmt.Println("Args:")
+			fmt.Println("📥  Args:")
 			for _, v := range cmd.Args() {
-				fmt.Println("   " + v)
+				fmt.Println("      " + v)
 			}
 		}
 		if len(cmd.Returns()) > 0 {
-			fmt.Println("Returns:")
+			fmt.Println("📤  Returns:")
 			for _, v := range cmd.Returns() {
-				fmt.Println("   " + v)
+				fmt.Println("      " + v)
 			}
 		}
 		return
@@ -386,34 +387,35 @@ func (d *DescManager) PrintHelp(name string, shell *Shell) {
 	// 外部命令
 	c, ok := d.Get(name)
 	if !ok {
-		fmt.Printf("❌ 未找到命令 %s\n", name)
+		fmt.Printf("⚠️ 未找到命令 %s\n", name)
 		return
 	}
 
-	fmt.Printf("Command: %s\nCategory: %s\n\n", name, c.Category)
-	fmt.Printf("Usage:\n  %s\n", c.Usage)
+	fmt.Printf("📄 Command:  %-5s\n", name)
+	fmt.Printf("🗂  Category: %-5s\n", c.Category)
+	fmt.Printf("📌  Usage:\n      %s\n", c.Usage)
 	if len(c.Flags) > 0 {
-		fmt.Println("Flags:")
+		fmt.Println("🏷️  Flags:")
 		for _, v := range c.Flags {
-			fmt.Println("   " + v)
+			fmt.Println("      " + v)
 		}
 	}
 	if len(c.Subcommands) > 0 {
-		fmt.Println("Subcommands:")
+		fmt.Println("🧩  Subcommands:")
 		for _, v := range c.Subcommands {
-			fmt.Println("   " + v)
+			fmt.Println("      " + v)
 		}
 	}
 	if len(c.Args) > 0 {
-		fmt.Println("Args:")
+		fmt.Println("📥  Args:")
 		for _, v := range c.Args {
-			fmt.Println("   " + v)
+			fmt.Println("      " + v)
 		}
 	}
 	if len(c.Returns) > 0 {
-		fmt.Println("Returns:")
+		fmt.Println("📤  Returns:")
 		for _, v := range c.Returns {
-			fmt.Println("   " + v)
+			fmt.Println("      " + v)
 		}
 	}
 }
