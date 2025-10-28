@@ -16,10 +16,32 @@ import (
 )
 
 // env merge
-var baseEnv []string
+var (
+	homeDir string
+	baseEnv []string
+)
 
 func init() {
 	baseEnv = os.Environ()
+
+	// 优先环境变量 FLYOS_HOME
+	if custom := os.Getenv("FLYOS_HOME"); custom != "" {
+		homeDir = custom
+		return
+	}
+
+	// 其次用户主目录
+	if dir, err := os.UserHomeDir(); err == nil {
+		homeDir = dir
+		return
+	}
+
+	// 最后当前目录兜底
+	if cwd, err := os.Getwd(); err == nil {
+		homeDir = cwd
+	} else {
+		homeDir = "."
+	}
 }
 
 func mergeEnv(custom map[string]string) []string {
@@ -33,41 +55,41 @@ func mergeEnv(custom map[string]string) []string {
 
 // 配置结构
 type Config struct {
-    CommandsDirs []string      			`toml:"commands_dirs"`
-    Excludes     []string      			`toml:"excludes"`
-    Env          map[string]interface{} `toml:"env"` // 允许值为 string 或 []string
+	CommandsDirs []string               `toml:"commands_dirs"`
+	Excludes     []string               `toml:"excludes"`
+	Env          map[string]interface{} `toml:"env"` // 允许值为 string 或 []string
 }
 
 func (c *Config) NormalizeEnv() map[string]string {
-    result := make(map[string]string)
-    
-    for key, rawVal := range c.Env {
-        switch val := rawVal.(type) {
-        case string:
-            result[key] = val
-        case []interface{}:
-            // TOML 解析数组为 []interface{}
-            parts := make([]string, 0, len(val))
-            for _, v := range val {
-                if s, ok := v.(string); ok {
-                    parts = append(parts, s)
-                }
-            }
-            result[key] = strings.Join(parts, ":")
-        case []string:
-            // 某些解析器可能直接返回 []string
-            result[key] = strings.Join(val, ":")
-        default:
-            // 兜底：转为字符串（如数字、bool）
-            result[key] = fmt.Sprintf("%v", val)
-        }
-    }
-    return result
+	result := make(map[string]string)
+
+	for key, rawVal := range c.Env {
+		switch val := rawVal.(type) {
+		case string:
+			result[key] = val
+		case []interface{}:
+			// TOML 解析数组为 []interface{}
+			parts := make([]string, 0, len(val))
+			for _, v := range val {
+				if s, ok := v.(string); ok {
+					parts = append(parts, s)
+				}
+			}
+			result[key] = strings.Join(parts, ":")
+		case []string:
+			// 某些解析器可能直接返回 []string
+			result[key] = strings.Join(val, ":")
+		default:
+			// 兜底：转为字符串（如数字、bool）
+			result[key] = fmt.Sprintf("%v", val)
+		}
+	}
+	return result
 }
 
 // Config
-func parseConfig() (*Config, error) {
-	data, err := os.ReadFile(".config.toml")
+func parseConfig(cfgPath string) (*Config, error) {
+	data, err := os.ReadFile(cfgPath)
 	if err != nil {
 		return nil, err
 	}
@@ -121,9 +143,17 @@ func (r *REPL) Loop() {
 
 // Main
 func main() {
-	cfg, err := parseConfig()
+	flyosDir := filepath.Join(homeDir, ".flyos")
+	cfgPath := filepath.Join(flyosDir, "config.toml")
+	descPath := filepath.Join(flyosDir, "desc.toml")
+
+	cfg, err := parseConfig(cfgPath)
 	if err != nil {
 		fmt.Printf("❌ 启动失败: %v\n", err)
+		return
+	}
+	if err := os.MkdirAll(flyosDir, 0755); err != nil {
+		fmt.Printf("创建配置目录失败: %v\n", err)
 		return
 	}
 
@@ -137,7 +167,7 @@ func main() {
 	shell.Register(&ListCommand{})
 
 	desc := NewDescManager()
-	_ = desc.Load("desc.toml")
+	_ = desc.Load(descPath)
 
 	// 注册 HelpCommand（关键）
 	helpCmd := NewHelpCommand(desc, shell)
@@ -151,19 +181,19 @@ func main() {
 	go func() {
 		watcher, _ := fsnotify.NewWatcher()
 		defer watcher.Close()
-		_ = watcher.Add(".")
+		_ = watcher.Add(flyosDir)
 		var debounce *time.Timer
 		for {
 			select {
 			case ev := <-watcher.Events:
 				switch filepath.Base(ev.Name) {
-				case ".config.toml":
+				case "config.toml":
 					if ev.Op&fsnotify.Write != 0 {
 						if debounce != nil {
 							debounce.Stop()
 						}
 						debounce = time.AfterFunc(300*time.Millisecond, func() {
-							cfg, err := parseConfig()
+							cfg, err := parseConfig(cfgPath)
 							if err != nil {
 								fmt.Println("❌ reload config failed:", err)
 								return
@@ -177,7 +207,7 @@ func main() {
 							debounce.Stop()
 						}
 						debounce = time.AfterFunc(300*time.Millisecond, func() {
-							_ = desc.Load("desc.toml")
+							_ = desc.Load(descPath)
 						})
 					}
 				}
@@ -191,6 +221,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("🚀 FlyOS REPL 已启动！💡 输入 help 查看命令，输入 exit 安全退出 " )
+	fmt.Println("🚀 FlyOS REPL 已启动！💡 输入 help 查看命令，输入 exit 安全退出 ")
 	repl.Loop()
 }
