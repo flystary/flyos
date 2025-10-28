@@ -9,5 +9,9 @@ excludes = []
 
 # 环境变量
 [env]
-PATH = ["$PATH", "/usr/local/bin", "/usr/bin"]
+PATH = [
+    "/usr/local/bin",
+    "/usr/sbin",
+    "/usr/bin"
+]
 DEBUG = "true"
