@@ -1,6 +1,6 @@
 package converter
 
-import "flyos/dsl"
+import "flyos/pkg/dsl"
 
 // Converter 定义 DSL Command → 业务对象的转换接口
 type Converter[T any] interface {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"flyos/dsl"
-	"flyos/routing"
+	"flyos/pkg/dsl"
+	"flyos/modules/acl"
 )
 
 type ACLConverter struct{}
@@ -14,19 +14,19 @@ func NewACLConverter() *ACLConverter {
 	return &ACLConverter{}
 }
 
-func (c *ACLConverter) FromDSL(cmd *dsl.Command) (*routing.ACLRule, error) {
+func (c *ACLConverter) FromDSL(cmd *dsl.Command) (*acl.ACLRule, error) {
 	if strings.ToLower(cmd.Kind) != "acl" {
 		return nil, fmt.Errorf("invalid command kind: %s", cmd.Kind)
 	}
-	r := &routing.ACLRule{
+	r := &acl.ACLRule{
 		Subtype: cmd.Subtype,
 		Attrs:   cmd.Attrs,
 	}
 	return r, nil
 }
 
-func (c *ACLConverter) FromDSLBatch(cmds []dsl.Command) ([]*routing.ACLRule, error) {
-	var rules []*routing.ACLRule
+func (c *ACLConverter) FromDSLBatch(cmds []dsl.Command) ([]*acl.ACLRule, error) {
+	var rules []*acl.ACLRule
 	for _, cdm := range cmds {
 		if strings.ToLower(cdm.Kind) != "acl" {
 			continue

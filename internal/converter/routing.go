@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"flyos/dsl"
-	"flyos/routing"
+	"flyos/pkg/dsl"
+	"flyos/modules/routing"
 )
 
 type RouteConverter struct{}
