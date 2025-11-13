@@ -85,28 +85,51 @@ flowchart LR
     end
 
     subgraph Daemon Layer
-        DSL["DSL Parser\n(Command objects)"]
-        Runtime["Runtime Layer\n(Executor + Converter)"]
-        Modules["Modules\n(routing, acl, nic, bond, ...)\n实际业务逻辑"]
+        Runtime
+        Converter
+        Modules/Managers
     end
 
-    REPL -->|DSL Text| DSL
-    REST -->|Command/Args| Runtime
-    MCP -->|Command/Args| Runtime
+    %% DSL路径
+    REPL -->|输入DSL文本| DSLParser
+    DSLParser -->|生成Command对象| Runtime
+    Runtime -->|ExecuteDSLCommand| Converter
+    Converter -->|ConvertFromDSL| ModuleObject
+    ModuleObject -->|Execute/Manager方法| Manager
+    Manager -->|系统调用/操作| Kernel/Net/Config
 
-    DSL -->|Command Objects| Runtime
-    Runtime -->|Converted Objects| Modules
+    %% REST/MCP路径
+    REST -->|JSON/Args| Runtime
+    MCP -->|JSON/Args| Runtime
+    Runtime -->|ExecuteFromJSON| Converter
+    Converter -->|ConvertFromJSON| ModuleObject
+    ModuleObject -->|Execute/Manager方法| Manager
+    Manager -->|系统调用/操作| Kernel/Net/Config
+
 ```
-图解说明
-1. Client Layer
-- REPL/REST/MCP 提供不同入口
-- DSL 文本只来自 REPL，REST/MCP 直接可传 Command和参数
-2. Daemon Layer
-- DSL Parser → 将文本解析成 Command 对象
-- Runtime → 执行 Command，对象转换（Converter），调度 Manager
-- Modules → 真正的系统操作（如路由、ACL、NIC、GRE、IPSec 等）
-3. 数据流
-- DSL 文本 → Command → Runtime → Converter → Module 对象 → 执行
+流程说明
+1. DSL（REPL）
+ - 用户输入 DSL 文本（如 route add static { prefix 10.0.0.0/24; via 192.168.1.1 }）。
+ - DSL Parser 解析成 Command 对象。
+ - Runtime 的 ExecuteDSLCommand 接收 Command 对象。
+2. Runtime
+ - 根据 Command.Kind 调用对应 Converter。
+ - Converter 将 DSL Command 转成模块对象（如 Route/BGP/OSPF）。
+ - 模块对象内部有 Execute(verb string) 方法，封装具体的 Manager 调用。
+3. REST/MCP
+ - 直接传 JSON/Args 给 Runtime。
+ - Runtime 使用 ExecuteFromJSON。
+ - Converter 将 JSON 转成模块对象。
+ - 模块对象调用 Manager 执行。
+4. 模块/Manager
+ - 负责真正系统操作，如：
+  - routing.CLIManager 调用系统命令。
+  - routing.NetlinkManager 调用 netlink。
+  - acl.Manager 管理防火墙规则。
+ - Manager 可以复用同一套接口，实现统一调用。
+5. 最终系统效果
+- 所有路径（DSL、REST、MCP）都通过 Runtime + Converter + Module/Manager 执行。
+- 可以统一权限检查、事件发布、日志等。
 
 ## 典型目录结构
 ```mermaid
