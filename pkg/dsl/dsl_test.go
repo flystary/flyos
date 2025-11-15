@@ -181,7 +181,7 @@ route delete pbr { prefix 10.1.0.0/16; fwmark 100; priority 1000; iif eth1 }
 acl add inbound { src 10.0.0.0/8; dst any; action allow; priority 100 }
 acl set outbound { src any; dst 192.168.0.0/16; action deny; log true }
 
-# 声明式同步（最终态）
+# 声明式同步
 route sync {
 	static { prefix 10.0.0.0/24; via 192.168.1.1; dev eth0; track yes }
 	bgp { prefix 172.16.0.0/16; local_pref 200; community [ 65001:100 ] }
