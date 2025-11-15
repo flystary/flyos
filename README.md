@@ -10,47 +10,46 @@ FlyOS 是一个集网络与安全的操作系统，支持多种控制通道（RE
 graph LR
 
     %% ======================
-    %% Clients Layer
+    %% Clients
     %% ======================
-    subgraph Clients["Clients (外部控制入口)"]
+    subgraph Clients["Clients"]
         direction TB
-        REPL[REPL 客户端 (cmd/repl, DSL)]
-        CLI[CLI / Tools]
-        RESTC[REST Clients]
-        MCPC[MCP Clients]
+        REPL[REPL Client]
+        CLI[CLI Tools]
+        RESTC[REST Client]
+        MCPC[MCP Client]
     end
 
-    %% 对接 Daemon
-    REPL -->|IPC: Unix Socket| DAEMON
-    CLI  -->|IPC: Unix Socket| DAEMON
+    %% Connect clients to daemon
+    REPL -->|IPC (Unix Socket)| DAEMON[flyos-daemon]
+    CLI  -->|IPC (Unix Socket)| DAEMON
     RESTC -->|HTTP/JSON| REST
-    MCPC -->|WebSocket/JSON-RPC| MCP
+    MCPC  -->|WS/JSON-RPC| MCP
 
-    %% ======================
-    %% Daemon 外部节点
-    %% ======================
+    %% Daemon external
     DAEMON --> REST
     DAEMON --> MCP
-    DAEMON --> Runtime
+    DAEMON --> RUNTIME
 
     %% ======================
-    %% Daemon 内部结构
+    %% Daemon internals
     %% ======================
-    subgraph Daemon["flyos-daemon (核心执行进程)"]
+    subgraph DaemonInternal["flyos-daemon (internal components)"]
         direction LR
         REST[REST Server]
         MCP[MCP Server]
-        Runtime[runtime.Manager]
-        Modules[modules/*]
+        RUNTIME[runtime.Manager]
+        MODULES[modules/*]
     end
 
-    Runtime --> Modules
+    RUNTIME --> MODULES
 
-    %% note
+    %% Note
     note right of REST
-        REST / MCP 在 daemon 内部监听外部请求，
-        通过 runtime.Manager.Exec() 调用模块。
+        REST and MCP listen inside the daemon,
+        calling runtime.Manager.Exec() to run modules.
     end
+
 
 ```
 
