@@ -8,21 +8,54 @@ FlyOS 是一个集网络与安全的操作系统，支持多种控制通道（RE
 
 ```mermaid
 graph LR
-    subgraph Clients
-      REPL[REPL 客户端 (cmd/repl)] -->|Unix Socket (IPC)| Daemon
-      CLI[其它 CLI/工具] -->|Unix Socket (IPC)| Daemon
+
+    %% ======================
+    %% Clients Layer
+    %% ======================
+    subgraph Clients["Clients (外部控制入口)"]
+        direction TB
+        REPL[REPL 客户端<br/>(cmd/repl - 使用 DSL)]
+        CLI[CLI/Tools<br/>(其它命令行工具)]
+        RESTClient[REST Clients<br/>(前端/Agent)]
+        MCPClient[MCP Clients<br/>(AI Agents/LLM)]
     end
 
-    subgraph Daemon["flyos-daemon (长驻进程)"]
-      Daemon --> REST[REST Server (HTTP) - 内部监听]
-      Daemon --> MCP[MCP Server (WebSocket/JSON-RPC) - 内部监听]
-      Daemon --> Runtime[runtime.Manager]
-      Runtime --> Modules[modules.*]
+    %% 对接 Daemon
+    REPL -->|IPC: Unix Socket| DAEMON[flyos-daemon]
+    CLI  -->|IPC: Unix Socket| DAEMON
+    RESTClient -->|HTTP/JSON| REST
+    MCPClient  -->|WebSocket/JSON-RPC| MCP
+
+    %% ======================
+    %% Daemon 外部节点
+    %% ======================
+    DAEMON --> REST
+    DAEMON --> MCP
+    DAEMON --> Runtime
+
+
+    %% ======================
+    %% Daemon 内部结构
+    %% ======================
+    subgraph Daemon["flyos-daemon (核心执行进程)"]
+        direction LR
+
+        REST[REST Server<br/>HTTP/JSON]
+        MCP[MCP Server<br/>WebSocket/JSON-RPC]
+        Runtime[runtime.Manager<br/>(统一命令调度)]
+        Modules[Modules<br/>modules/*<br/>(路由/ACL/NIC/...)]
     end
 
+    Runtime --> Modules
+
+    %% 运行机制说明
     note right of REST
-      REST 与 MCP 在 daemon 内部监听外部请求，
-      直接调用 runtime.Manager.Exec()
+        REST/MCP 在 daemon 内部监听外部请求，
+        通过 runtime.Manager.Exec() 统一调度模块。
+    end
+    note right of REPL
+        REPL 客户端解析 DSL 命令，
+        通过 IPC 调用 daemon 的 ExecDSL() 方法。
     end
 ```
 
