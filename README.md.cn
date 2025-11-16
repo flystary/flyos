@@ -1,33 +1,31 @@
 # 🛰️ FlyOS
 
-**FlyOS** This is a lightweight operating system that integrates networking and security capabilities, supporting multiple control channels (REPL/REST/MCP). It communicates with daemons via **IPC** to achieve unified scheduling of network and security modules (routing/nic/acl/tunnel/nmap, etc.).
+**FlyOS** 是一款集网络与安全能力于一身的轻量级操作系统，支持多种控制通道（REPL / REST / MCP），通过 **IPC** 与守护进程通信，实现对网络与安全模块（routing / nic / acl / tunnel / nmap 等）的统一调度。
 
-Its core objective is to provide a **unified, programmable, and scalable runtime environment** for **routing, switching, firewalls, data plane acceleration, and edge computing** on general-purpose devices.
+其核心目标是在通用设备上，为 **路由、交换、防火墙、数据面加速及边缘计算** 提供 **统一、可编程、可扩展的运行环境**。
 
-### Control Channels
+### 控制通道
 
-- **REPL (DSL)**: Interactive command line for operations personnel
+- **REPL（DSL）**：面向运维人员的交互式命令行
+- **REST API**：适合 UI、自动化平台和 DevOps/NetOps 集成
+- **MCP（JSON-RPC）**：面向 AI/LLM 自动化管理与智能编排
 
-- **REST API**: Suitable for UI, automation platforms, and DevOps/NetOps integration
-
-- **MCP (JSON-RPC)**: For AI/LLM automated management and intelligent orchestration
-
-Regardless of the control method used, all commands ultimately call daemons via **IPC (Unix Socket)**, and are executed by the **runtime.Manager** scheduling module, achieving unified management and efficient expansion of network and security policies.
+无论使用哪种控制方式，所有指令最终都通过 **IPC (Unix Socket)** 调用守护进程，由 **runtime.Manager** 调度模块执行，实现网络与安全策略的统一管理与高效扩展。
 
 ---
 
-# 📦 Core Features
+# 📦 核心特性
 
-- Multiple control channels: REPL (DSL), REST API, MCP (JSON-RPC)
-- Unified scheduling via IPC communication (Unix Socket)
-- Modular network and security functions: routing, ACL, NAT, NIC, Tunnel, VRF, etc.
-- Unified scheduling module: runtime.Manager
-- Declarative configuration support for DSL
-- Designed for automation and AI management
+- 多控制通道：REPL（DSL）、REST API、MCP（JSON-RPC）
+- IPC 通信（Unix Socket）实现统一调度
+- 模块化网络与安全功能：routing、ACL、NAT、NIC、Tunnel、VRF 等
+- runtime.Manager 统一调度模块
+- DSL 支持声明式配置
+- 面向自动化与 AI 管理
 
 ---
 
-# 🏗️ Project Structure
+# 🏗️ 项目结构
 ```
 flyos/
 ├── cmd/
@@ -49,7 +47,7 @@ flyos/
 ```
 ---
 
-# 🧠 Overall Architecture Diagram
+# 🧠 总体架构图
 
 ```mermaid
 graph LR
@@ -83,16 +81,16 @@ graph LR
 ```
 ---
 
-# 🔧 Installation Instructions
+# 🔧 安装说明
 
-## 1. Cloning the Repository
+## 1. 克隆仓库
 
 ```bash
 git clone https://github.com/flystary/flyos.git
 cd flyos
 ```
 
-## 2. Compiling the Project
+## 2. 编译项目
 
 确保 Go >= 1.20.0 环境：
 
@@ -103,7 +101,7 @@ go build -o flyos-cli ./cmd/client/main.go
 go build -o flyos-repl ./cmd/repl/main.go
 ```
 
-## 3. Configuration
+## 3. 配置
 
 创建 `config.toml` 和 `desc.toml`，可参考示例：
 
@@ -117,7 +115,7 @@ hostname = "flyos-node"
 default = "192.168.1.1"
 ```
 
-## 4. Start the daemon process
+## 4. 启动守护进程
 
 ```bash
 ./flyos-daemon
@@ -125,9 +123,9 @@ default = "192.168.1.1"
 
 ---
 
-# ⚙️ Usage Examples
+# ⚙️ 使用示例
 
-## 1. Using REPL / DSL
+## 1. 使用 REPL / DSL
 ```bash
 root@flyos:~# ssh flyos
                 __                             __
@@ -184,13 +182,13 @@ flyos>
 
 ```
 
-## 2. Using REST API
+## 2. 使用 REST API
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/route/add      -H "Content-Type: application/json"      -d '{"prefix":"10.0.0.0/24","via":"192.168.1.1"}'
 ```
 
-## 3. Using MCP (JSON-RPC)
+## 3. 使用 MCP（JSON-RPC）
 
 ```json
 POST /mcp
@@ -205,7 +203,7 @@ POST /mcp
 }
 ```
 
-## 4. IPC Call Example (Go)
+## 4. IPC 调用示例（Go）
 
 ```go
 req := Request{
@@ -218,7 +216,7 @@ client.Send(req)
 
 ---
 
-# ⚙️ REPL DSL Flowchart
+# ⚙️ REPL DSL 流程图
 
 ```mermaid
 sequenceDiagram
@@ -243,7 +241,7 @@ sequenceDiagram
 
 ---
 
-# 🔹 REST / MCP Flowchart
+# 🔹 REST / MCP 流程图
 ```mermaid
 sequenceDiagram
     participant Client as REST / MCP
@@ -260,7 +258,7 @@ sequenceDiagram
 ```
 ---
 
-# ⚙️ Runtime call chain diagram
+# ⚙️ runtime 调用链图
 
 ```mermaid
 flowchart TD
@@ -279,7 +277,7 @@ flowchart TD
 
 ---
 
-# 🧱 Module Architecture Diagram
+# 🧱 模块架构图
 
 ```mermaid
 graph TB
@@ -306,8 +304,8 @@ graph TB
 
 # 🗒️ TODO
 
-- [ ] REPL Login / ACL
+- [ ] REPL 登录 / ACL
 - [ ] REST OpenAPI
-- [ ] MCP schema auto-generation
-- [ ] CLI/REPL history and completion
-- [ ] modules generate unified documentation
+- [ ] MCP schema 自动生成
+- [ ] CLI/REPL history 与补全
+- [ ] modules 生成统一文档
